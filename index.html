@@ -149,8 +149,17 @@
   /* approval workflow */
   .role{
     border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;margin-bottom:10px;background:#fff;
-    display:flex;align-items:center;gap:12px;transition:border-color .2s;
+    display:flex;align-items:center;gap:12px;transition:border-color .2s;flex-wrap:wrap;
   }
+  .role .badge{font-size:9px;font-weight:900;background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:3px 7px;letter-spacing:.06em;animation:pop .3s ease;white-space:nowrap}
+  .role .sig{font-family:var(--mono);font-size:9.5px;color:var(--green);margin-top:3px}
+  .review{border-top:1.5px dashed var(--line);margin-top:11px;padding-top:11px;width:100%;animation:pop .25s ease}
+  .review .rv-hint{font-size:10.5px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;font-weight:700}
+  .rvitem{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;font-size:12px;background:#FBFAF5;cursor:pointer;transition:all .15s}
+  .rvitem input{margin-top:2px;accent-color:var(--ink);width:14px;height:14px;flex:none;cursor:pointer}
+  .rvitem b{display:block;font-size:12px}
+  .rvitem span{color:var(--muted);font-size:11px}
+  .rvitem.checked{border-color:#BFDCC9;background:var(--green-bg)}
   .role.active{border-color:var(--ink)}
   .role.done{border-color:var(--green);background:var(--green-bg)}
   .avatar{
@@ -375,20 +384,38 @@
       <h3><span class="stepnum">3</span>APPROVAL WORKFLOW → PRODUCT MCP</h3>
       <div class="sub">Roles inside the fund sign off in sequence. Only then is the MCP generated.</div>
 
-      <div class="role done" id="role-assoc">
+      <div class="role" id="role-assoc">
         <div class="avatar">A</div>
-        <div class="rinfo"><div class="rname">Associate</div><div class="rdesc">Uploaded source package · 3 documents</div></div>
-        <span class="rstat ok">DONE ✓</span>
+        <div class="rinfo"><div class="rname">Associate</div><div class="rdesc" id="assoc-desc">Uploads the source package</div></div>
+        <span class="rstat waiting" id="assoc-stat">PENDING</span>
       </div>
       <div class="role" id="role-fm">
         <div class="avatar">FM</div>
-        <div class="rinfo"><div class="rname">Fund Manager</div><div class="rdesc">Reviews extracted terms & eligibility rules</div></div>
-        <button class="btn lime" id="btn-fm" onclick="approveRole('fm')" disabled>Approve</button>
+        <div class="rinfo"><div class="rname">Fund Manager</div><div class="rdesc">Reviews extracted terms &amp; eligibility rules</div></div>
+        <span class="badge" id="fm-badge" hidden>1 PACKAGE AWAITING REVIEW</span>
+        <button class="btn lime" id="btn-fm" onclick="openReview('fm')" disabled>Review →</button>
+        <span class="rstat ok" id="fm-stat" hidden>APPROVED ✓</span>
+        <div class="review" id="fm-review" hidden>
+          <div class="rv-hint">CONFIRM EACH ITEM TO SIGN — nothing becomes callable until every box is checked</div>
+          <div class="rvitem" onclick="toggleRv(event,this,'fm')"><input type="checkbox"><div><b>Product facts &amp; NAV terms</b><span>24 verified facts — $1.00 NAV, 3-month tenor, audit coverage 1.18× (OM, AUD)</span></div></div>
+          <div class="rvitem" onclick="toggleRv(event,this,'fm')"><input type="checkbox"><div><b>Subscription &amp; redemption terms</b><span>Min $100,000 · T+1 settlement · monthly window, 10-day notice (SA §1.2, §3, §5)</span></div></div>
+          <div class="rvitem" onclick="toggleRv(event,this,'fm')"><input type="checkbox"><div><b>Yield representation</b><span>5.2% net stated as indicative &amp; non-guaranteed everywhere it appears (OM p.11)</span></div></div>
+          <button class="btn primary" id="btn-fm-approve" onclick="approveRole('fm')" disabled>Approve as Fund Manager — 0/3 confirmed</button>
+        </div>
       </div>
       <div class="role" id="role-risk">
         <div class="avatar">RC</div>
         <div class="rinfo"><div class="rname">Risk &amp; Compliance</div><div class="rdesc">Signs off jurisdiction, AML and investor gates</div></div>
-        <button class="btn lime" id="btn-risk" onclick="approveRole('risk')" disabled>Sign off</button>
+        <span class="badge" id="risk-badge" hidden>AWAITING SIGN-OFF</span>
+        <button class="btn lime" id="btn-risk" onclick="openReview('risk')" disabled>Review →</button>
+        <span class="rstat ok" id="risk-stat" hidden>SIGNED ✓</span>
+        <div class="review" id="risk-review" hidden>
+          <div class="rv-hint">COMPLIANCE GATES — these become hard blocks inside the MCP, an agent cannot talk past them</div>
+          <div class="rvitem" onclick="toggleRv(event,this,'risk')"><input type="checkbox"><div><b>Eligible-investor gate</b><span>Attestation + KYC required before any draft order (EP §2)</span></div></div>
+          <div class="rvitem" onclick="toggleRv(event,this,'risk')"><input type="checkbox"><div><b>Jurisdiction screening</b><span>Screened at attestation, restricted list enforced again at execution (EP §4)</span></div></div>
+          <div class="rvitem" onclick="toggleRv(event,this,'risk')"><input type="checkbox"><div><b>AML wallet screening</b><span>Wallet must be linked and screened before settlement (EP §5)</span></div></div>
+          <button class="btn primary" id="btn-risk-approve" onclick="approveRole('risk')" disabled>Sign off as Risk &amp; Compliance — 0/3 confirmed</button>
+        </div>
       </div>
 
       <div class="btnrow">
@@ -396,6 +423,13 @@
       </div>
       <div id="mcp-out"></div>
     </div>
+  </div>
+
+  <!-- workflow trail -->
+  <div class="card ledger-card">
+    <h3><span class="stepnum">⛓</span>WORKFLOW TRAIL</h3>
+    <div class="sub">Upload → confirm policy → sign → generate → publish. Every step is a signed, hash-chained receipt — the same evidence chain the treasury verifies on its side.</div>
+    <div id="wf-trail"><div class="shelf-empty">Steps appear here as the workflow runs.</div></div>
   </div>
 </section>
 
@@ -506,7 +540,18 @@ const S = {
   usdc: 4500000,
   cfvc: 0,
   receipts: 2,
+  approvals: [],
+  trailN: 0,
 };
+
+function nowHM(){ return new Date().toTimeString().slice(0,5); }
+function addTrail(tag, text){
+  S.trailN++;
+  const t = document.getElementById('wf-trail');
+  if(S.trailN === 1) t.innerHTML = '';
+  t.insertAdjacentHTML('afterbegin',
+    `<div class="lentry"><span class="ltag ${tag}">${({control:'UPLOAD',decide:'POLICY',delegate:'SIGN',execute:'GENERATE',publish:'PUBLISH'})[tag]}</span><div class="ltxt">${text}</div><span class="lhash">${nowHM()} · ⛓ ${hash6()}</span></div>`);
+}
 
 const fmt = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 const fmt0 = n => n.toLocaleString('en-US');
@@ -575,6 +620,13 @@ function addFiles(list){
 function checkExtractReady(){
   const allReady = document.querySelectorAll('#filelist .fstat.ready').length === S.files.length && S.files.length>0;
   document.getElementById('btn-extract').disabled = !allReady;
+  if(allReady && !S._uploadLogged){
+    S._uploadLogged = true;
+    document.getElementById('assoc-desc').textContent = `Uploaded source package · ${S.files.length} documents`;
+    document.getElementById('assoc-stat').outerHTML = '<span class="rstat ok">DONE ✓</span>';
+    document.getElementById('role-assoc').classList.add('done');
+    addTrail('control', `Associate uploaded ${S.files.length} documents — parsed in-browser, checksums pinned.`);
+  }
 }
 
 /* ================= step 2 : extraction ================= */
@@ -625,24 +677,54 @@ function showPolicy(){
   document.getElementById('card-approve').classList.remove('dim');
   document.getElementById('role-fm').classList.add('active');
   document.getElementById('btn-fm').disabled = false;
-  toast('Policy compiled — route it through the approval workflow →');
+  document.getElementById('fm-badge').hidden = false;
+  addTrail('decide', `Policy compiled from documents — 24 facts, 8 eligibility rules, 7 terms. Routed to Fund Manager for review.`);
+  toast('Policy compiled — now it routes through the fund’s own approval chain →');
+}
+
+/* role review panels */
+function openReview(which){
+  document.getElementById('btn-'+which).style.display = 'none';
+  document.getElementById(which+'-badge').hidden = true;
+  document.getElementById(which+'-review').hidden = false;
+}
+function toggleRv(ev, el, which){
+  const cb = el.querySelector('input');
+  if(ev.target !== cb) cb.checked = !cb.checked;
+  el.classList.toggle('checked', cb.checked);
+  const panel = document.getElementById(which+'-review');
+  const total = panel.querySelectorAll('.rvitem').length;
+  const n = panel.querySelectorAll('.rvitem input:checked').length;
+  const ab = document.getElementById('btn-'+which+'-approve');
+  ab.disabled = n < total;
+  ab.textContent = (which==='fm' ? 'Approve as Fund Manager' : 'Sign off as Risk & Compliance') + ` — ${n}/${total} confirmed`;
 }
 
 /* ================= step 3 : approvals + MCP ================= */
 function approveRole(which){
+  const sig = '0x'+hash6()+hash6();
   if(which==='fm'){
     S.fmApproved = true;
-    const r = document.getElementById('role-fm');
-    r.classList.remove('active'); r.classList.add('done');
-    document.getElementById('btn-fm').outerHTML = '<span class="rstat ok">APPROVED ✓</span>';
+    S.approvals.push({role:'fund_manager', sig});
+    const card = document.getElementById('role-fm');
+    card.classList.remove('active'); card.classList.add('done');
+    document.getElementById('fm-review').hidden = true;
+    document.getElementById('fm-stat').hidden = false;
+    card.querySelector('.rinfo').insertAdjacentHTML('beforeend', `<div class="sig">3/3 confirmed · signed ${sig} · ${nowHM()}</div>`);
+    addTrail('delegate', `Fund Manager approved terms & eligibility (3/3 confirmed) — signature ${sig}. Routed to Risk & Compliance.`);
     document.getElementById('role-risk').classList.add('active');
     document.getElementById('btn-risk').disabled = false;
+    document.getElementById('risk-badge').hidden = false;
   }
   if(which==='risk'){
     S.riskApproved = true;
-    const r = document.getElementById('role-risk');
-    r.classList.remove('active'); r.classList.add('done');
-    document.getElementById('btn-risk').outerHTML = '<span class="rstat ok">SIGNED ✓</span>';
+    S.approvals.push({role:'risk_compliance', sig});
+    const card = document.getElementById('role-risk');
+    card.classList.remove('active'); card.classList.add('done');
+    document.getElementById('risk-review').hidden = true;
+    document.getElementById('risk-stat').hidden = false;
+    card.querySelector('.rinfo').insertAdjacentHTML('beforeend', `<div class="sig">3/3 gates confirmed · signed ${sig} · ${nowHM()}</div>`);
+    addTrail('delegate', `Risk & Compliance signed off all compliance gates (3/3) — signature ${sig}. Package fully approved.`);
     document.getElementById('btn-generate').disabled = false;
     toast('All roles signed — generate the Product MCP');
   }
@@ -670,6 +752,11 @@ function generateMCP(){
   <span class="k">"mcp"</span>: <span class="s">"${p}.product.vishwa"</span>,
   <span class="k">"version"</span>: <span class="s">"1.0.0"</span>,
   <span class="k">"policy_hash"</span>: <span class="s">"0x${hash6()}${hash6()}${hash6()}"</span>,
+  <span class="k">"approvals"</span>: [
+    { <span class="k">"role"</span>: <span class="s">"associate"</span>,       <span class="k">"action"</span>: <span class="s">"uploaded ${S.files.length} docs"</span> },
+    { <span class="k">"role"</span>: <span class="s">"fund_manager"</span>,    <span class="k">"sig"</span>: <span class="s">"${(S.approvals[0]||{}).sig||''}"</span> },
+    { <span class="k">"role"</span>: <span class="s">"risk_compliance"</span>, <span class="k">"sig"</span>: <span class="s">"${(S.approvals[1]||{}).sig||''}"</span> }
+  ],
   <span class="k">"tools"</span>: [
     { <span class="k">"name"</span>: <span class="s">"get_terms"</span>,             <span class="k">"gates"</span>: [] },
     { <span class="k">"name"</span>: <span class="s">"check_eligibility"</span>,    <span class="k">"gates"</span>: [<span class="s">"kyc"</span>,<span class="s">"jurisdiction"</span>] },
@@ -683,6 +770,7 @@ function generateMCP(){
       </div>
     </div>`;
   S.mcpGenerated = true;
+  addTrail('execute', `${P} Product MCP generated — policy hash pinned, 4 controlled actions, both role signatures embedded in the manifest.`);
   setPhase('productize','done');
   document.getElementById('mcp-out').scrollIntoView({behavior:'smooth', block:'center'});
 }
@@ -702,6 +790,7 @@ function publishMCP(){
       <div><div class="pname">${P}<span class="newtag">NEW</span></div><div class="pdesc">tokenized credit fund note · 3M tenor · via Product MCP</div></div>
       <div class="pright"><div class="pyield">5.2% indic.</div><div class="ptag">MCP · LIVE</div></div>
     </div>`;
+  addTrail('publish', `${P} published to the registry — discoverable by every connected treasury & agent from this moment.`);
   addLedger('publish', `${P} Product MCP registered — policy hash pinned, 4 tools exposed, eligibility gates armed.`);
   toast(P + ' published — switch to the Treasury Console');
 }
