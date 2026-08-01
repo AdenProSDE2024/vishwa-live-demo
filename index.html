@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vishwa — Product MCP Live Demo</title>
+<style>
+  :root{
+    --cream:#F1EEE3;
+    --ink:#0D0D0D;
+    --lime:#C6F32E;
+    --lime-dark:#9BC91B;
+    --panel:#FFFFFF;
+    --line:#DDD8C9;
+    --line-dark:#2A2A2A;
+    --muted:#6E6A5E;
+    --green:#1E7B4F;
+    --green-bg:#E4F3EA;
+    --red:#C0392B;
+    --red-bg:#FBEAE7;
+    --amber:#9A6A00;
+    --amber-bg:#FBF3DE;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+    background:var(--cream);color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--lime)}
+
+  /* ---------- top bar ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:var(--cream);border-bottom:2px solid var(--ink);
+    padding:14px 28px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  }
+  .logo{font-weight:900;font-size:26px;letter-spacing:-1px;display:flex;align-items:center;gap:8px}
+  .logo .orbit{width:26px;height:26px;border:2.5px solid var(--ink);border-radius:50%;position:relative;transform:rotate(-18deg)}
+  .logo .orbit::after{content:'';position:absolute;inset:-6px   -8px;border:2px solid var(--ink);border-radius:50%;transform:scaleY(.42)}
+  .pill{
+    border:2px solid var(--ink);border-radius:999px;padding:6px 16px;
+    font-size:12px;font-weight:700;letter-spacing:.08em;display:inline-flex;align-items:center;gap:8px;background:#fff;
+  }
+  .pill .dot{width:9px;height:9px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 2px rgba(0,0,0,.08)}
+  .spacer{flex:1}
+  .tabs{display:flex;gap:10px}
+  .tab{
+    border:2px solid var(--ink);background:#fff;color:var(--ink);
+    font-weight:800;font-size:13px;letter-spacing:.05em;padding:10px 18px;border-radius:999px;cursor:pointer;
+    transition:all .15s;
+  }
+  .tab.active{background:var(--ink);color:var(--lime)}
+  .tab .num{opacity:.55;margin-right:6px}
+  .reset-btn{
+    border:none;background:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline;
+  }
+
+  /* ---------- phase tracker ---------- */
+  .phasebar{
+    display:flex;gap:8px;padding:12px 28px;background:var(--cream);
+    border-bottom:1px solid var(--line);flex-wrap:wrap;align-items:center;
+  }
+  .phase{
+    border:1.5px solid var(--ink);border-radius:999px;padding:5px 14px;
+    font-size:11.5px;font-weight:800;letter-spacing:.06em;background:#fff;color:var(--ink);opacity:.45;
+  }
+  .phase.on{opacity:1;background:var(--lime)}
+  .phase.done{opacity:1;background:var(--ink);color:var(--lime)}
+  .phasebar .note{margin-left:auto;font-size:11px;color:var(--muted);letter-spacing:.08em;font-weight:600}
+
+  main{padding:26px 28px 80px;max-width:1480px;margin:0 auto}
+  .view{display:none}
+  .view.active{display:block}
+
+  .hero-line{font-size:clamp(22px,3vw,34px);font-weight:900;letter-spacing:-.5px;line-height:1.05;margin-bottom:6px}
+  .hero-line .accent{color:var(--lime-dark)}
+  .hero-sub{color:var(--muted);font-size:14px;margin-bottom:22px;max-width:760px}
+
+  /* ---------- layout ---------- */
+  .cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+  @media(max-width:1100px){.cols{grid-template-columns:1fr}}
+  .card{
+    background:var(--panel);border:1.5px solid var(--ink);border-radius:14px;padding:18px;
+    box-shadow:4px 4px 0 rgba(13,13,13,.9);
+  }
+  .card.dim{opacity:.45;pointer-events:none;filter:grayscale(.3)}
+  .card h3{font-size:13px;letter-spacing:.1em;font-weight:900;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .stepnum{
+    width:22px;height:22px;border-radius:6px;background:var(--ink);color:var(--lime);
+    display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:none;
+  }
+  .card .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+
+  /* dropzone */
+  .drop{
+    border:2px dashed #B9B4A3;border-radius:12px;padding:26px 16px;text-align:center;cursor:pointer;
+    transition:all .15s;background:#FBFAF5;
+  }
+  .drop:hover,.drop.over{border-color:var(--ink);background:#F4FBDD}
+  .drop .arrow{width:36px;height:36px;border-radius:50%;background:var(--lime);display:inline-flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;margin-bottom:8px}
+  .drop b{display:block;font-size:14px}
+  .drop span{font-size:11.5px;color:var(--muted)}
+  .filelist{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+  .file{
+    display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:#fff;
+    animation:pop .25s ease;
+  }
+  @keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+  .file .ftype{font-family:var(--mono);font-size:9.5px;font-weight:700;background:var(--ink);color:#fff;border-radius:4px;padding:3px 5px}
+  .file .fname{font-size:12.5px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .file .fstat{font-size:10px;font-weight:800;letter-spacing:.08em}
+  .file .fstat.parsing{color:var(--amber)}
+  .file .fstat.ready{color:var(--green)}
+  .btnrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .btn{
+    border:2px solid var(--ink);border-radius:999px;padding:10px 18px;font-size:13px;font-weight:800;
+    cursor:pointer;background:#fff;color:var(--ink);transition:transform .1s;letter-spacing:.02em;
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn.primary{background:var(--ink);color:var(--lime)}
+  .btn.lime{background:var(--lime)}
+  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+  .tiny-note{font-size:10.5px;color:var(--muted);margin-top:10px;text-align:center}
+
+  /* policy extraction */
+  .extract-progress{margin-top:6px}
+  .exline{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:5px 0;color:var(--muted)}
+  .exline.done{color:var(--ink)}
+  .exline .tick{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line);flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:9px}
+  .exline.done .tick{background:var(--green);border-color:var(--green);color:#fff}
+  .exline.doing .tick{border-color:var(--amber)}
+  .exline.doing{color:var(--amber)}
+  .spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--amber);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .polgroup{margin-top:14px}
+  .polgroup h4{font-size:10.5px;letter-spacing:.12em;color:var(--muted);font-weight:800;margin-bottom:7px}
+  .polrow{
+    display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;background:#fff;
+    font-size:12.5px;animation:pop .3s ease;
+  }
+  .polrow .pk{font-weight:700;white-space:nowrap}
+  .polrow .pv{color:#3d3a30;flex:1}
+  .polrow .src{font-family:var(--mono);font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:2px 5px;white-space:nowrap}
+
+  /* approval workflow */
+  .role{
+    border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;margin-bottom:10px;background:#fff;
+    display:flex;align-items:center;gap:12px;transition:border-color .2s;
+  }
+  .role.active{border-color:var(--ink)}
+  .role.done{border-color:var(--green);background:var(--green-bg)}
+  .avatar{
+    width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--lime);
+    display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex:none;
+  }
+  .role.done .avatar{background:var(--green);color:#fff}
+  .role .rinfo{flex:1}
+  .role .rname{font-size:13px;font-weight:800}
+  .role .rdesc{font-size:11px;color:var(--muted)}
+  .role .rstat{font-size:10px;font-weight:900;letter-spacing:.08em}
+  .role .rstat.waiting{color:var(--muted)}
+  .role .rstat.ok{color:var(--green)}
+  .role .btn{padding:7px 14px;font-size:11.5px}
+
+  /* MCP output */
+  .mcp-card{
+    background:var(--ink);color:#fff;border-radius:12px;padding:16px;margin-top:14px;animation:pop .35s ease;
+  }
+  .mcp-card .mtitle{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .mcp-card .mlogo{width:30px;height:30px;border-radius:8px;background:var(--lime);color:var(--ink);font-weight:900;display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+  .mcp-card .mname{font-weight:800;font-size:14px}
+  .mcp-card .msub{font-size:10.5px;color:#9a9a8e}
+  .mcp-card .live{margin-left:auto;font-size:9.5px;font-weight:900;letter-spacing:.1em;background:var(--lime);color:var(--ink);border-radius:4px;padding:3px 7px}
+  .mstat{display:flex;justify-content:space-between;font-size:11.5px;padding:6px 0;border-bottom:1px solid var(--line-dark);color:#cfcdc2}
+  .mstat b{color:#fff}
+  .tools{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+  .tool{font-family:var(--mono);font-size:11px;background:#1E1E1E;border:1px solid #3A3A3A;color:var(--lime);border-radius:999px;padding:5px 11px}
+  .manifest{
+    font-family:var(--mono);font-size:10.5px;background:#161616;border:1px solid var(--line-dark);border-radius:8px;
+    padding:12px;margin-top:12px;color:#B9B4A3;white-space:pre;overflow-x:auto;max-height:210px;overflow-y:auto;
+  }
+  .manifest .k{color:#8FD3FF}.manifest .s{color:var(--lime)}
+
+  .publish-banner{
+    margin-top:14px;border:2px solid var(--ink);background:var(--lime);border-radius:12px;padding:14px 16px;
+    font-weight:800;font-size:13.5px;display:flex;align-items:center;gap:12px;animation:pop .35s ease;
+  }
+
+  /* ---------- treasury view ---------- */
+  .tre-grid{display:grid;grid-template-columns:410px 1fr;gap:18px;align-items:start}
+  @media(max-width:1100px){.tre-grid{grid-template-columns:1fr}}
+
+  .postable{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+  .postable th{font-size:10px;letter-spacing:.1em;color:var(--muted);text-align:left;padding:6px 4px;border-bottom:1.5px solid var(--ink)}
+  .postable td{padding:8px 4px;border-bottom:1px solid var(--line)}
+  .postable td.r,.postable th.r{text-align:right;font-variant-numeric:tabular-nums}
+  .postable .asset{font-weight:800}
+  .postable .venue{font-size:10px;color:var(--muted)}
+  .postable tr.total td{font-weight:900;border-bottom:none;border-top:2px solid var(--ink)}
+  .postable tr.newrow td{background:#F4FBDD}
+  .newtag{font-size:8.5px;font-weight:900;background:var(--lime);border:1px solid var(--ink);border-radius:4px;padding:1px 5px;margin-left:6px;letter-spacing:.06em}
+
+  .mandate{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+  .mtag{font-size:10.5px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:#fff;color:#3d3a30}
+  .mtag.g{background:var(--green-bg);border-color:#BFDCC9;color:var(--green)}
+  .ctrl-row{display:flex;gap:8px;margin-top:12px;align-items:center}
+  .ctrl-row .mode{font-size:10px;font-weight:900;letter-spacing:.1em;color:var(--amber);background:var(--amber-bg);border-radius:5px;padding:4px 8px}
+  .kill{border:2px solid var(--red);color:var(--red);background:#fff;border-radius:999px;font-size:11px;font-weight:800;padding:6px 13px;cursor:pointer}
+  .pause{border:2px solid var(--ink);background:#fff;border-radius:999px;font-size:11px;font-weight:800;padding:6px 13px;cursor:pointer}
+
+  /* product shelf */
+  .shelf .prod{
+    display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff;
+  }
+  .shelf .prod.newprod{border:2px solid var(--ink);background:#F4FBDD;animation:pop .4s ease}
+  .pico{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;flex:none}
+  .shelf .pname{font-size:12.5px;font-weight:800}
+  .shelf .pdesc{font-size:10.5px;color:var(--muted)}
+  .shelf .pright{margin-left:auto;text-align:right}
+  .shelf .pyield{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+  .shelf .ptag{font-size:9px;color:var(--muted);letter-spacing:.05em}
+  .shelf-empty{font-size:11.5px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:14px;text-align:center}
+
+  /* chat */
+  .chat-card{padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:640px}
+  .chat-head{padding:14px 18px;border-bottom:1.5px solid var(--ink);display:flex;align-items:center;gap:10px;background:#FBFAF5}
+  .chat-head .cdot{width:10px;height:10px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 3px #E4EFC2}
+  .chat-head b{font-size:13.5px}
+  .chat-head span{font-size:11px;color:var(--muted)}
+  .chat-body{flex:1;padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;max-height:620px}
+  .msg{max-width:88%;animation:pop .25s ease}
+  .msg.user{align-self:flex-end}
+  .msg.user .bubble{background:var(--ink);color:#fff;border-radius:14px 14px 3px 14px;padding:10px 14px;font-size:13px}
+  .msg.agent .bubble{background:#fff;border:1.5px solid var(--line);border-radius:3px 14px 14px 14px;padding:12px 14px;font-size:13px;line-height:1.5}
+  .msg .who{font-size:9.5px;font-weight:800;letter-spacing:.09em;color:var(--muted);margin-bottom:4px}
+  .msg.user .who{text-align:right}
+  .typing{display:inline-flex;gap:4px;padding:4px 2px}
+  .typing i{width:6px;height:6px;border-radius:50%;background:#B9B4A3;animation:blink 1s infinite}
+  .typing i:nth-child(2){animation-delay:.18s}.typing i:nth-child(3){animation-delay:.36s}
+  @keyframes blink{0%,70%,100%{opacity:.25}35%{opacity:1}}
+
+  .metrics{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0 2px}
+  .metrics td{padding:6px 8px;border-bottom:1px solid #EDEAE0}
+  .metrics td.r{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .metrics tr.hl td{background:#F4FBDD;font-weight:800}
+
+  .gates{margin:8px 0 2px;display:flex;flex-direction:column;gap:6px}
+  .gate{display:flex;gap:9px;align-items:flex-start;border:1px solid #E3EFD2;background:#F6FBEE;border-radius:9px;padding:8px 10px;font-size:12px}
+  .gate .gi{width:16px;height:16px;border-radius:50%;background:var(--green);color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+  .gate b{display:block;font-size:12px}
+  .gate span{color:#5d5a4e;font-size:11px}
+  .gate.bad{border-color:#F2CFC9;background:var(--red-bg)}
+  .gate.bad .gi{background:var(--red)}
+  .verdict{border-radius:9px;padding:9px 12px;font-weight:900;font-size:12px;letter-spacing:.06em;margin-top:8px;display:inline-block}
+  .verdict.ok{background:var(--green-bg);color:var(--green)}
+  .verdict.no{background:var(--red-bg);color:var(--red)}
+  .confirm-row{display:flex;gap:9px;margin-top:10px}
+  .receipt{
+    font-family:var(--mono);font-size:10.5px;background:#161616;color:#B9B4A3;border-radius:9px;padding:11px 13px;margin-top:9px;
+    line-height:1.7;overflow-x:auto;white-space:pre;
+  }
+  .receipt .h{color:var(--lime)}
+
+  .chips{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;background:#FBFAF5}
+  .chip{
+    border:1.5px solid var(--ink);background:#fff;border-radius:999px;padding:7px 13px;font-size:11.5px;font-weight:700;cursor:pointer;
+  }
+  .chip:hover{background:var(--lime)}
+  .chip:disabled{opacity:.35;cursor:not-allowed}
+  .inputrow{display:flex;gap:9px;padding:12px 18px;border-top:1.5px solid var(--ink);background:#fff}
+  .inputrow input{
+    flex:1;border:1.5px solid var(--line);border-radius:999px;padding:10px 16px;font-size:13px;outline:none;font-family:inherit;
+  }
+  .inputrow input:focus{border-color:var(--ink)}
+  .send{border:none;background:var(--ink);color:var(--lime);border-radius:999px;width:42px;height:42px;font-size:16px;cursor:pointer;flex:none}
+
+  /* audit ledger */
+  .ledger-card{margin-top:18px}
+  .chainok{
+    font-size:11.5px;font-weight:800;color:var(--green);background:var(--green-bg);border:1px solid #BFDCC9;border-radius:8px;
+    padding:8px 12px;margin-bottom:10px;
+  }
+  .lentry{
+    display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line);font-size:12px;animation:pop .3s ease;
+  }
+  .ltag{font-size:9px;font-weight:900;letter-spacing:.07em;border-radius:4px;padding:3px 7px;flex:none;margin-top:1px}
+  .ltag.delegate{background:#E8E4F8;color:#4B3E8E}
+  .ltag.publish{background:#DDF3FB;color:#0A6E8A}
+  .ltag.decide{background:#E8E4F8;color:#4B3E8E}
+  .ltag.execute{background:var(--green-bg);color:var(--green)}
+  .ltag.control{background:var(--amber-bg);color:var(--amber)}
+  .lentry .ltxt{flex:1;line-height:1.45}
+  .lentry .lhash{font-family:var(--mono);font-size:9.5px;color:var(--muted);white-space:nowrap;margin-top:2px}
+  .lstatus{font-size:9px;font-weight:900;border-radius:4px;padding:2px 6px;letter-spacing:.05em}
+  .lstatus.approved{background:var(--green-bg);color:var(--green)}
+  .lstatus.blocked{background:var(--red-bg);color:var(--red)}
+
+  /* toast */
+  #toast{
+    position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);z-index:100;
+    background:var(--ink);color:var(--lime);font-weight:800;font-size:13px;border-radius:999px;padding:12px 22px;
+    transition:transform .3s;box-shadow:0 8px 30px rgba(0,0,0,.3);max-width:90vw;text-align:center;
+  }
+  #toast.show{transform:translateX(-50%) translateY(0)}
+
+  footer{
+    border-top:1px solid var(--line);padding:16px 28px;font-size:10.5px;letter-spacing:.14em;color:var(--muted);font-weight:700;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="orbit"></span>vishwa</div>
+  <div class="pill"><span class="dot"></span>LIVE DEMO · SIMULATED EXECUTION</div>
+  <div class="spacer"></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-studio" onclick="switchView('studio')"><span class="num">01</span>PRODUCT MCP STUDIO</button>
+    <button class="tab" id="tab-treasury" onclick="switchView('treasury')"><span class="num">02</span>TREASURY CONSOLE</button>
+  </div>
+  <button class="reset-btn" onclick="location.reload()">reset demo</button>
+</header>
+
+<div class="phasebar">
+  <span class="phase" id="ph-productize">PRODUCTIZE</span>
+  <span class="phase" id="ph-sense">SENSE</span>
+  <span class="phase" id="ph-predict">PREDICT</span>
+  <span class="phase" id="ph-decide">DECIDE</span>
+  <span class="phase" id="ph-execute">EXECUTE</span>
+  <span class="phase" id="ph-audit">AUDIT</span>
+  <span class="note">PRODUCT & POLICY STATE SHOWN IN REAL TIME</span>
+</div>
+
+<main>
+
+<!-- ============ VIEW 1 : PRODUCT MCP STUDIO ============ -->
+<section class="view active" id="view-studio">
+  <div class="hero-line">FROM DOCUMENTS TO AN <span class="accent">AGENT-CALLABLE PRODUCT.</span></div>
+  <div class="hero-sub">A generic workflow: drop any fund's offering documents, confirm the extracted policy, route the approvals — and the product becomes an MCP that treasuries and agents can discover and call.</div>
+
+  <div class="cols">
+
+    <!-- STEP 1 : upload -->
+    <div class="card" id="card-upload">
+      <h3><span class="stepnum">1</span>SOURCE PACKAGE</h3>
+      <div class="sub">Upload the product documents — prospectus, policy, term sheet, subscription agreement.</div>
+      <div class="drop" id="drop" onclick="document.getElementById('fileinput').click()">
+        <div class="arrow">↑</div>
+        <b>Drag real files here</b>
+        <span>PDF · DOCX · any product document — parsed in-browser, nothing is uploaded</span>
+      </div>
+      <input type="file" id="fileinput" multiple style="display:none">
+      <div class="filelist" id="filelist"></div>
+      <div class="btnrow">
+        <button class="btn" onclick="loadSamplePackage()">Use CFVC sample package</button>
+        <button class="btn primary" id="btn-extract" onclick="startExtraction()" disabled>Extract product policy →</button>
+      </div>
+      <div class="tiny-note">Prototype — files stay in this browser. No document leaves the machine.</div>
+    </div>
+
+    <!-- STEP 2 : extracted policy -->
+    <div class="card dim" id="card-policy">
+      <h3><span class="stepnum">2</span>EXTRACTED POLICY</h3>
+      <div class="sub">Facts and rules pulled from the documents. Everything an agent will be bound by — verified before it becomes callable.</div>
+      <div class="extract-progress" id="extract-progress"></div>
+      <div id="policy-out"></div>
+    </div>
+
+    <!-- STEP 3 : approvals + MCP -->
+    <div class="card dim" id="card-approve">
+      <h3><span class="stepnum">3</span>APPROVAL WORKFLOW → PRODUCT MCP</h3>
+      <div class="sub">Roles inside the fund sign off in sequence. Only then is the MCP generated.</div>
+
+      <div class="role done" id="role-assoc">
+        <div class="avatar">A</div>
+        <div class="rinfo"><div class="rname">Associate</div><div class="rdesc">Uploaded source package · 3 documents</div></div>
+        <span class="rstat ok">DONE ✓</span>
+      </div>
+      <div class="role" id="role-fm">
+        <div class="avatar">FM</div>
+        <div class="rinfo"><div class="rname">Fund Manager</div><div class="rdesc">Reviews extracted terms & eligibility rules</div></div>
+        <button class="btn lime" id="btn-fm" onclick="approveRole('fm')" disabled>Approve</button>
+      </div>
+      <div class="role" id="role-risk">
+        <div class="avatar">RC</div>
+        <div class="rinfo"><div class="rname">Risk &amp; Compliance</div><div class="rdesc">Signs off jurisdiction, AML and investor gates</div></div>
+        <button class="btn lime" id="btn-risk" onclick="approveRole('risk')" disabled>Sign off</button>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn primary" id="btn-generate" onclick="generateMCP()" disabled>Generate Product MCP</button>
+      </div>
+      <div id="mcp-out"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VIEW 2 : TREASURY CONSOLE ============ -->
+<section class="view" id="view-treasury">
+  <div class="hero-line">THE TREASURY <span class="accent">DISCOVERS IT.</span> THE AGENT <span class="accent">STAYS INSIDE POLICY.</span></div>
+  <div class="hero-sub">A client treasury runs on the same rails. The moment a product MCP is published, this treasury's agent can see it, price an allocation against the mandate, and execute — every step gated and receipted.</div>
+
+  <div class="tre-grid">
+    <div>
+      <!-- treasury state -->
+      <div class="card">
+        <h3><span class="stepnum">◎</span>TREASURY STATE</h3>
+        <div class="sub">Live positions · mandate v1.0 <span style="font-family:var(--mono);font-size:10px">0xdc0e…6afe</span></div>
+        <table class="postable" id="positions">
+          <thead><tr><th>ASSET</th><th class="r">BALANCE</th><th class="r">USD VALUE</th></tr></thead>
+          <tbody>
+            <tr><td class="asset">USDC <div class="venue">Circle · operating</div></td><td class="r" id="usdc-bal">4,500,000</td><td class="r" id="usdc-usd">$4,500,000.00</td></tr>
+            <tr><td class="asset">SOL <div class="venue">native · staked</div></td><td class="r">2,180</td><td class="r">$348,800.00</td></tr>
+            <tr><td class="asset">USDY <div class="venue">Ondo · yield</div></td><td class="r">100,540</td><td class="r">$100,800.00</td></tr>
+            <tr class="total"><td>TOTAL</td><td></td><td class="r" id="total-usd">$4,949,600.00</td></tr>
+          </tbody>
+        </table>
+        <div class="mandate">
+          <span class="mtag g">✓ Operating floor $2,000,000</span>
+          <span class="mtag g">✓ Single-asset cap 40%</span>
+          <span class="mtag">EVM owner 0xd6…681d</span>
+          <span class="mtag">Plaid · 2 accounts</span>
+          <span class="mtag">4 endpoints</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="mode">MODE: SIMULATED (DRY RUN)</span>
+          <div class="spacer"></div>
+          <button class="pause" onclick="toast('Workflow paused — a preventive control, not clean-up')">Pause</button>
+          <button class="kill" onclick="toast('Kill switch armed — all agent authority revoked instantly')">Kill switch</button>
+        </div>
+      </div>
+
+      <!-- product shelf -->
+      <div class="card shelf" style="margin-top:18px">
+        <h3><span class="stepnum">◈</span>DISCOVERABLE PRODUCTS</h3>
+        <div class="sub">Product MCPs this treasury's agent can see and call.</div>
+        <div class="prod"><span class="pico" style="background:#2E5AAC">U</span>
+          <div><div class="pname">USDY</div><div class="pdesc">Ondo · tokenized treasury yield</div></div>
+          <div class="pright"><div class="pyield">4.5% APY</div><div class="ptag">MCP · LIVE</div></div>
+        </div>
+        <div class="prod"><span class="pico" style="background:#6B4BA3">A</span>
+          <div><div class="pname">APC3M</div><div class="pdesc">Pharos Harbor · 3-month credit note</div></div>
+          <div class="pright"><div class="pyield">5.0% indic.</div><div class="ptag">MCP · LIVE</div></div>
+        </div>
+        <div id="shelf-new">
+          <div class="shelf-empty">Publish a product in the MCP Studio and it appears here.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- agent chat -->
+    <div class="card chat-card">
+      <div class="chat-head">
+        <span class="cdot"></span>
+        <div><b>Treasury Agent</b><br><span>Reads live positions, mandate and forecast. Won't execute without the gated Decide step.</span></div>
+      </div>
+      <div class="chat-body" id="chat"></div>
+      <div class="chips" id="chips">
+        <button class="chip" onclick="ask('positions')">Show my positions</button>
+        <button class="chip" onclick="ask('deployable')">What can I safely deploy?</button>
+        <button class="chip" id="chip-discover" onclick="ask('discover')">Discover new products</button>
+        <button class="chip" id="chip-deploy" onclick="ask('deploy250')" disabled>Deploy $250,000 into CFVC</button>
+        <button class="chip" id="chip-breach" onclick="ask('deploy2700')" disabled>Try $2,700,000 — watch the guardrail</button>
+      </div>
+      <div class="inputrow">
+        <input id="chatinput" placeholder="Ask the agent… e.g. deploy 250000 into CFVC" onkeydown="if(event.key==='Enter')sendFree()">
+        <button class="send" onclick="sendFree()">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- audit ledger -->
+  <div class="card ledger-card">
+    <h3><span class="stepnum">⛓</span>VERIFIABLE AUDIT LEDGER</h3>
+    <div class="sub">Hash-chained receipts, ed25519-signed by key <span style="font-family:var(--mono);font-size:10.5px">8vX33iDc…</span> — verified on every read.</div>
+    <div class="chainok" id="chainok">Chain intact ✓ — 2 receipts, every hash + signature + link verified</div>
+    <div id="ledger">
+      <div class="lentry"><span class="ltag delegate">DELEGATE</span><div class="ltxt">Owner <span style="font-family:var(--mono);font-size:10.5px">0xd6f15fe…8681d</span> authorized agent under mandate v1.0 — spend ≤ policy caps, kill switch armed.</div><span class="lhash">⛓ 6a324b</span></div>
+      <div class="lentry"><span class="ltag control">CONTROL</span><div class="ltxt">Holder APPROVED the deploy-decision gate outcome. Simulated mode enforced.</div><span class="lhash">⛓ 41431a</span></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>ILLUSTRATIVE DEMO · SIMULATED EXECUTION · PRODUCT MCP · PERSONALIZED WORKFLOW · GUARDED EXECUTION</footer>
+
+<div id="toast"></div>
+
+<script>
+/* ================= state ================= */
+const S = {
+  files: [],
+  extracted: false,
+  fmApproved: false,
+  riskApproved: false,
+  mcpGenerated: false,
+  published: false,
+  discovered: false,
+  deployed: false,
+  productName: 'CFVC',
+  usdc: 4500000,
+  cfvc: 0,
+  receipts: 2,
+};
+
+const fmt = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmt0 = n => n.toLocaleString('en-US');
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 3400);
+}
+function hash6(){ return Array.from({length:6},()=>'0123456789abcdef'[Math.floor(Math.random()*16)]).join(''); }
+function hashLong(){ return '0x'+Array.from({length:40},()=>'0123456789abcdef'[Math.floor(Math.random()*16)]).join(''); }
+
+function setPhase(name, mode){
+  const el = document.getElementById('ph-'+name);
+  if(!el) return;
+  el.classList.remove('on','done');
+  if(mode) el.classList.add(mode);
+}
+
+function switchView(v){
+  document.getElementById('view-studio').classList.toggle('active', v==='studio');
+  document.getElementById('view-treasury').classList.toggle('active', v==='treasury');
+  document.getElementById('tab-studio').classList.toggle('active', v==='studio');
+  document.getElementById('tab-treasury').classList.toggle('active', v==='treasury');
+  window.scrollTo({top:0, behavior:'instant'});
+  if(v==='treasury' && !S._chatInit){ S._chatInit = true; agentIntro(); }
+}
+
+/* ================= step 1 : files ================= */
+const drop = document.getElementById('drop');
+;['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+;['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop', e=>{ addFiles([...e.dataTransfer.files].map(f=>({name:f.name,size:f.size}))); });
+document.getElementById('fileinput').addEventListener('change', e=>{ addFiles([...e.target.files].map(f=>({name:f.name,size:f.size}))); });
+
+function loadSamplePackage(){
+  addFiles([
+    {name:'CFVC_Offering_Memorandum.pdf', size: 2418003},
+    {name:'CFVC_Eligibility_Policy.pdf', size: 512446},
+    {name:'CFVC_Subscription_Agreement.pdf', size: 887201},
+    {name:'CFVC_Audit_Report_Q2.pdf', size: 1204880},
+  ]);
+}
+
+function addFiles(list){
+  if(!list.length) return;
+  // derive product name from first file if user dropped their own
+  const m = list[0].name.match(/^([A-Za-z0-9]{2,10})[_\-\s]/);
+  if(m && !list[0].name.startsWith('CFVC')) S.productName = m[1].toUpperCase();
+  if(list[0].name.startsWith('CFVC')) S.productName = 'CFVC';
+
+  list.forEach((f,i)=>{
+    S.files.push(f);
+    const row = document.createElement('div');
+    row.className = 'file';
+    const kb = f.size ? (f.size>1048576 ? (f.size/1048576).toFixed(1)+' MB' : Math.round(f.size/1024)+' KB') : '';
+    const ext = (f.name.split('.').pop()||'DOC').toUpperCase().slice(0,4);
+    row.innerHTML = `<span class="ftype">${ext}</span><span class="fname">${f.name}</span>
+      <span style="font-size:10px;color:var(--muted)">${kb}</span>
+      <span class="fstat parsing">PARSING<span class="spinner" style="margin-left:5px"></span></span>`;
+    document.getElementById('filelist').appendChild(row);
+    setTimeout(()=>{ row.querySelector('.fstat').outerHTML = '<span class="fstat ready">READY</span>'; checkExtractReady(); }, 700 + i*450);
+  });
+  setPhase('productize','on');
+}
+function checkExtractReady(){
+  const allReady = document.querySelectorAll('#filelist .fstat.ready').length === S.files.length && S.files.length>0;
+  document.getElementById('btn-extract').disabled = !allReady;
+}
+
+/* ================= step 2 : extraction ================= */
+const EXTRACT_STEPS = [
+  'Reading offering memorandum — issuer, structure, NAV terms',
+  'Parsing eligibility policy — investor gates, jurisdictions',
+  'Parsing subscription agreement — minimums, settlement, fees',
+  'Cross-checking audit report — verified facts only',
+  'Compiling policy into machine-enforceable rules',
+];
+function startExtraction(){
+  document.getElementById('btn-extract').disabled = true;
+  document.getElementById('card-policy').classList.remove('dim');
+  const prog = document.getElementById('extract-progress');
+  prog.innerHTML = EXTRACT_STEPS.map((s,i)=>`<div class="exline" id="ex-${i}"><span class="tick"></span>${s}</div>`).join('');
+  EXTRACT_STEPS.forEach((s,i)=>{
+    setTimeout(()=>{
+      const el = document.getElementById('ex-'+i);
+      el.classList.add('doing'); el.querySelector('.tick').innerHTML = '<span class="spinner"></span>';
+    }, i*750);
+    setTimeout(()=>{
+      const el = document.getElementById('ex-'+i);
+      el.classList.remove('doing'); el.classList.add('done'); el.querySelector('.tick').textContent = '✓';
+      if(i === EXTRACT_STEPS.length-1) showPolicy();
+    }, i*750 + 700);
+  });
+}
+
+function showPolicy(){
+  const P = S.productName;
+  document.getElementById('policy-out').innerHTML = `
+    <div class="polgroup"><h4>VERIFIED PRODUCT FACTS · 24</h4>
+      <div class="polrow"><span class="pk">Product</span><span class="pv">${P} — tokenized credit fund note, $1.00 NAV, 3-month tenor</span><span class="src">OM p.4</span></div>
+      <div class="polrow"><span class="pk">Indicative yield</span><span class="pv">5.2% net, non-guaranteed — per offering memorandum</span><span class="src">OM p.11</span></div>
+      <div class="polrow"><span class="pk">Audit</span><span class="pv">Q2 report verified — collateral coverage 1.18×</span><span class="src">AUD p.2</span></div>
+    </div>
+    <div class="polgroup"><h4>ELIGIBILITY & APPROVAL RULES · 8</h4>
+      <div class="polrow"><span class="pk">Investor gate</span><span class="pv">Eligible-investor attestation + KYC required before any draft order</span><span class="src">EP §2</span></div>
+      <div class="polrow"><span class="pk">Jurisdiction</span><span class="pv">Screened at attestation; restricted list enforced at execution</span><span class="src">EP §4</span></div>
+      <div class="polrow"><span class="pk">AML</span><span class="pv">Wallet screening required — link a wallet to screen</span><span class="src">EP §5</span></div>
+    </div>
+    <div class="polgroup"><h4>SUBSCRIPTION TERMS · 7</h4>
+      <div class="polrow"><span class="pk">Minimum</span><span class="pv">$100,000 initial subscription · $10,000 increments</span><span class="src">SA §1.2</span></div>
+      <div class="polrow"><span class="pk">Settlement</span><span class="pv">T+1 on-chain vs. off-chain wire, whichever the venue permits</span><span class="src">SA §3</span></div>
+      <div class="polrow"><span class="pk">Redemption</span><span class="pv">Monthly window, 10-day notice, gate at 25% of NAV</span><span class="src">SA §5</span></div>
+    </div>`;
+  S.extracted = true;
+  document.getElementById('card-approve').classList.remove('dim');
+  document.getElementById('role-fm').classList.add('active');
+  document.getElementById('btn-fm').disabled = false;
+  toast('Policy compiled — route it through the approval workflow →');
+}
+
+/* ================= step 3 : approvals + MCP ================= */
+function approveRole(which){
+  if(which==='fm'){
+    S.fmApproved = true;
+    const r = document.getElementById('role-fm');
+    r.classList.remove('active'); r.classList.add('done');
+    document.getElementById('btn-fm').outerHTML = '<span class="rstat ok">APPROVED ✓</span>';
+    document.getElementById('role-risk').classList.add('active');
+    document.getElementById('btn-risk').disabled = false;
+  }
+  if(which==='risk'){
+    S.riskApproved = true;
+    const r = document.getElementById('role-risk');
+    r.classList.remove('active'); r.classList.add('done');
+    document.getElementById('btn-risk').outerHTML = '<span class="rstat ok">SIGNED ✓</span>';
+    document.getElementById('btn-generate').disabled = false;
+    toast('All roles signed — generate the Product MCP');
+  }
+}
+
+function generateMCP(){
+  document.getElementById('btn-generate').disabled = true;
+  const P = S.productName, p = P.toLowerCase();
+  document.getElementById('mcp-out').innerHTML = `
+    <div class="mcp-card">
+      <div class="mtitle">
+        <span class="mlogo">${P[0]}</span>
+        <div><div class="mname">${P} Product Agent</div><div class="msub">built from ${S.files.length} approved documents · policy hash 0x${hash6()}${hash6()}</div></div>
+        <span class="live">READY</span>
+      </div>
+      <div class="mstat"><span>Knowledge</span><b>24 verified product facts</b></div>
+      <div class="mstat"><span>Policy</span><b>8 eligibility &amp; approval rules</b></div>
+      <div class="mstat"><span>Customer intake</span><b>7 required data points</b></div>
+      <div class="mstat" style="border:none"><span>Actions</span><b>4 controlled workflow actions</b></div>
+      <div class="tools">
+        <span class="tool">get_terms()</span><span class="tool">check_eligibility()</span>
+        <span class="tool">prepare_subscription()</span><span class="tool">request_redemption()</span>
+      </div>
+      <div class="manifest">{
+  <span class="k">"mcp"</span>: <span class="s">"${p}.product.vishwa"</span>,
+  <span class="k">"version"</span>: <span class="s">"1.0.0"</span>,
+  <span class="k">"policy_hash"</span>: <span class="s">"0x${hash6()}${hash6()}${hash6()}"</span>,
+  <span class="k">"tools"</span>: [
+    { <span class="k">"name"</span>: <span class="s">"get_terms"</span>,             <span class="k">"gates"</span>: [] },
+    { <span class="k">"name"</span>: <span class="s">"check_eligibility"</span>,    <span class="k">"gates"</span>: [<span class="s">"kyc"</span>,<span class="s">"jurisdiction"</span>] },
+    { <span class="k">"name"</span>: <span class="s">"prepare_subscription"</span>, <span class="k">"gates"</span>: [<span class="s">"eligibility"</span>,<span class="s">"aml"</span>,<span class="s">"min_100000"</span>] },
+    { <span class="k">"name"</span>: <span class="s">"request_redemption"</span>,   <span class="k">"gates"</span>: [<span class="s">"holder"</span>,<span class="s">"window"</span>,<span class="s">"notice_10d"</span>] }
+  ],
+  <span class="k">"enforcement"</span>: <span class="s">"policy travels with the product — same engine on every channel"</span>
+}</div>
+      <div class="btnrow">
+        <button class="btn lime" id="btn-publish" onclick="publishMCP()">Publish to registry</button>
+      </div>
+    </div>`;
+  S.mcpGenerated = true;
+  setPhase('productize','done');
+  document.getElementById('mcp-out').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function publishMCP(){
+  if(S.published) return;
+  S.published = true;
+  document.getElementById('btn-publish').disabled = true;
+  const P = S.productName;
+  document.getElementById('mcp-out').insertAdjacentHTML('beforeend', `
+    <div class="publish-banner">⚡ ${P} is live on the registry — every connected treasury &amp; agent can now discover and call it.
+      <button class="btn primary" style="margin-left:auto;white-space:nowrap" onclick="switchView('treasury')">Open Treasury Console →</button>
+    </div>`);
+  // shelf
+  document.getElementById('shelf-new').innerHTML = `
+    <div class="prod newprod"><span class="pico" style="background:#0D0D0D;color:var(--lime)">${P[0]}</span>
+      <div><div class="pname">${P}<span class="newtag">NEW</span></div><div class="pdesc">tokenized credit fund note · 3M tenor · via Product MCP</div></div>
+      <div class="pright"><div class="pyield">5.2% indic.</div><div class="ptag">MCP · LIVE</div></div>
+    </div>`;
+  addLedger('publish', `${P} Product MCP registered — policy hash pinned, 4 tools exposed, eligibility gates armed.`);
+  toast(P + ' published — switch to the Treasury Console');
+}
+
+/* ================= treasury chat ================= */
+const chat = document.getElementById('chat');
+function addMsg(who, html){
+  const m = document.createElement('div');
+  m.className = 'msg ' + who;
+  m.innerHTML = `<div class="who">${who==='user'?'TREASURER':'TREASURY AGENT'}</div><div class="bubble">${html}</div>`;
+  chat.appendChild(m);
+  chat.scrollTop = chat.scrollHeight;
+  return m;
+}
+function agentReply(html, delay=900){
+  const t = addMsg('agent','<span class="typing"><i></i><i></i><i></i></span>');
+  return new Promise(res=>{
+    setTimeout(()=>{ t.querySelector('.bubble').innerHTML = html; chat.scrollTop = chat.scrollHeight; res(t); }, delay);
+  });
+}
+function agentIntro(){
+  agentReply(`Talk to the treasury agent. I read your <b>live positions, mandate and forecast</b> to answer — and ask before I assume. I won't execute a move myself; that's the gated <b>Decide</b> step.`, 600);
+}
+
+async function ask(intent, freeText){
+  const P = S.productName;
+  const labels = {
+    positions:'Show my positions',
+    deployable:'What can I safely deploy?',
+    discover:'Discover new products',
+    deploy250:`Deploy $250,000 into ${P}`,
+    deploy2700:`Deploy $2,700,000 into ${P}`,
+  };
+  addMsg('user', freeText || labels[intent] || intent);
+
+  if(intent==='positions'){
+    setPhase('sense','on');
+    await agentReply(`Reading treasury state — 2 bank accounts (Plaid) + on-chain wallets:
+      <table class="metrics">
+        <tr><td>USDC · operating</td><td class="r">${fmt(S.usdc)}</td></tr>
+        <tr><td>SOL · staked</td><td class="r">$348,800.00</td></tr>
+        <tr><td>USDY · Ondo</td><td class="r">$100,800.00</td></tr>
+        ${S.cfvc?`<tr class="hl"><td>${P} · credit note</td><td class="r">${fmt(S.cfvc)}</td></tr>`:''}
+        <tr class="hl"><td>Total treasury</td><td class="r">${fmt(S.usdc+348800+100800+S.cfvc)}</td></tr>
+      </table>
+      Mandate v1.0 is enforced: operating floor <b>$2,000,000</b>, single-asset cap <b>40%</b>.`);
+    setPhase('sense','done');
+  }
+
+  if(intent==='deployable'){
+    setPhase('sense','done'); setPhase('predict','on');
+    await agentReply(`Forecasting deployable capital against cash needs, scheduled outflows and your mandate:
+      <table class="metrics">
+        <tr><td>Total treasury</td><td class="r">${fmt(S.usdc+348800+100800+S.cfvc)}</td></tr>
+        <tr><td>Floor (untouchable)</td><td class="r">$2,000,000.00</td></tr>
+        <tr><td>Idle above floor</td><td class="r">${fmt(S.usdc-2000000)}</td></tr>
+        <tr class="hl"><td>Cap-aware deployable</td><td class="r">$1,631,040.00</td></tr>
+        <tr><td>Projected yield (at 5.2% indic.)</td><td class="r">+$84,814/yr</td></tr>
+      </table>
+      The deployable amount is constrained by your concentration cap — and current mode is <b>SIMULATED</b> (dry run). ${S.published? `The highest-yielding eligible product on your shelf right now is <b>${P}</b>.` : `Publish a product MCP in the Studio and I can price it here.`}`);
+    setPhase('predict','done');
+  }
+
+  if(intent==='discover'){
+    if(!S.published){
+      await agentReply(`I can see <b>USDY</b> (Ondo) and <b>APC3M</b> (Pharos Harbor) on the registry. No new products since your last scan — publish one in the <b>Product MCP Studio</b> and it will appear here instantly.`);
+    } else {
+      S.discovered = true;
+      await agentReply(`Registry scan complete — <b>1 new product</b> since your last scan:
+        <div class="gates" style="margin-top:8px">
+          <div class="gate"><span class="gi">＋</span><div><b>${P} — tokenized credit fund note</b><span>3-month tenor · $1.00 NAV · 5.2% indicative · min $100,000 · discovered via <code>${P.toLowerCase()}.product.vishwa</code></span></div></div>
+          <div class="gate"><span class="gi">✓</span><div><b>check_eligibility() passed</b><span>Your treasury holds an eligible-investor attestation; jurisdiction &amp; AML screen clear.</span></div></div>
+        </div>
+        It fits inside your mandate. Want me to price an allocation? Try <b>“Deploy $250,000 into ${P}”</b>.`);
+      document.getElementById('chip-deploy').disabled = false;
+      document.getElementById('chip-breach').disabled = false;
+    }
+  }
+
+  if(intent==='deploy250') return runDeploy(250000);
+  if(intent==='deploy2700') return runDeploy(2700000);
+}
+
+async function runDeploy(amount){
+  const P = S.productName;
+  if(!S.published){
+    await agentReply(`I don't see <b>${P}</b> on the registry yet — publish its Product MCP in the Studio first, then I can call it.`);
+    return;
+  }
+  setPhase('decide','on');
+  const newUsdc = S.usdc - amount;
+  const floorOk = newUsdc >= 2000000;
+  const conc = ((S.cfvc+amount)/(S.usdc+348800+100800+S.cfvc))*100;
+
+  if(!floorOk){
+    await agentReply(`Running the Decide gate for <b>${fmt(amount)} → ${P}</b>:
+      <div class="gates">
+        <div class="gate"><span class="gi">✓</span><div><b>Approved asset (registry)</b><span>${P} MCP verified — policy hash matches the published manifest.</span></div></div>
+        <div class="gate"><span class="gi">✓</span><div><b>Eligibility — via ${P.toLowerCase()}.check_eligibility()</b><span>Attestation, jurisdiction and AML all clear.</span></div></div>
+        <div class="gate bad"><span class="gi">✕</span><div><b>Operating cash floor — FLOOR_BREACH</b><span>Would leave ${fmt(newUsdc)} in USDC, below the $2,000,000 floor.</span></div></div>
+      </div>
+      <span class="verdict no">BLOCKED — deployment would breach the operating floor</span><br>
+      <span style="font-size:11.5px;color:var(--muted)">Max I can deploy for you right now: <b>$1,631,040</b> (cap-aware). Nothing was executed; the denial is receipted below.</span>`, 1400);
+    addLedger('decide', `Gate BLOCKED deploying ${fmt(amount)} into ${P} (FLOOR_BREACH): deployment would breach the $2,000,000 operating floor.`, 'blocked');
+    setPhase('decide','done'); setPhase('audit','on');
+    return;
+  }
+
+  const t = await agentReply(`Running the Decide gate for <b>${fmt(amount)} → ${P}</b>:
+    <div class="gates">
+      <div class="gate"><span class="gi">✓</span><div><b>Approved asset (registry)</b><span>${P} MCP verified — policy hash matches the published manifest.</span></div></div>
+      <div class="gate"><span class="gi">✓</span><div><b>Eligibility — via ${P.toLowerCase()}.check_eligibility()</b><span>Eligible-investor attestation, jurisdiction and AML all clear. Min $100,000 met.</span></div></div>
+      <div class="gate"><span class="gi">✓</span><div><b>Operating cash floor</b><span>Leaves ${fmt(newUsdc)} in USDC, at or above the $2,000,000 floor.</span></div></div>
+      <div class="gate"><span class="gi">✓</span><div><b>Single-asset concentration</b><span>${P} would be ${conc.toFixed(1)}% of treasury, within the 40% cap.</span></div></div>
+      <div class="gate"><span class="gi">✓</span><div><b>Policy integrity</b><span>Enforcing mandate v1.0 (0xdc0e…6afe).</span></div></div>
+    </div>
+    <table class="metrics">
+      <tr><td>Idle above floor</td><td class="r">${fmt(S.usdc-2000000)} → ${fmt(newUsdc-2000000)}</td></tr>
+      <tr><td>${P} share of book</td><td class="r">${(S.cfvc/(S.usdc+449600+S.cfvc)*100||0).toFixed(1)}% → ${conc.toFixed(1)}%</td></tr>
+      <tr class="hl"><td>Projected yield</td><td class="r">+$${fmt0(Math.round(amount*0.052))}/yr</td></tr>
+    </table>
+    <span class="verdict ok">APPROVED — 5 checks passed</span>
+    <div class="confirm-row">
+      <button class="btn primary" onclick="confirmDeploy(${amount}, this)">Confirm — prepare_subscription()</button>
+      <button class="btn" onclick="cancelDeploy(this)">Cancel</button>
+    </div>`, 1500);
+  setPhase('decide','done');
+  addLedger('decide', `Gate APPROVED deploying ${fmt(amount)} into ${P} (5 checks passed).`, 'approved');
+}
+
+async function confirmDeploy(amount, btn){
+  const P = S.productName;
+  btn.closest('.confirm-row').innerHTML = '<span style="font-size:11.5px;color:var(--muted)">Confirmed by holder ✓</span>';
+  setPhase('execute','on');
+  const tx = hashLong();
+  await agentReply(`Policy re-checked at execution ✓ — calling <code>${P.toLowerCase()}.prepare_subscription()</code>…
+    <div class="receipt">✓ Subscribe ${fmt0(amount)} → ${fmt0(amount)} ${P} @ $1.00 NAV · 3M tenor · indicative 5.2%
+✓ SIMULATED execution (dry run): agent-signed transfer within policy
+  tx <span class="h">${tx}</span>
+  receipt evm-1-${S.receipts} · hash-chained · ed25519-signed
+✓ Settlement T+1 · venue: Pharos Harbor (AML-screened)</div>
+    Positions updated. The transaction and its policy result are receipted in the audit ledger below — evidence returns to the institution and feeds the next decision.`, 1600);
+  // update state
+  S.usdc -= amount; S.cfvc += amount; S.deployed = true;
+  document.getElementById('usdc-bal').textContent = fmt0(S.usdc);
+  document.getElementById('usdc-usd').textContent = fmt(S.usdc);
+  if(!document.getElementById('cfvc-row')){
+    document.querySelector('#positions tr.total').insertAdjacentHTML('beforebegin',
+      `<tr class="newrow" id="cfvc-row"><td class="asset">${P}<span class="newtag">NEW</span><div class="venue">Pharos Harbor · credit note</div></td><td class="r">${fmt0(S.cfvc)}</td><td class="r">${fmt(S.cfvc)}</td></tr>`);
+  } else {
+    const r = document.getElementById('cfvc-row').querySelectorAll('td');
+    r[1].textContent = fmt0(S.cfvc); r[2].textContent = fmt(S.cfvc);
+  }
+  addLedger('execute', `SIMULATED execution: agent-signed subscription of ${fmt(amount)} into ${P} within policy — tx ${tx.slice(0,10)}… (receipt evm-1-${S.receipts}).`, 'approved');
+  setPhase('execute','done'); setPhase('audit','on');
+  toast('Executed (simulated) — receipt appended to the audit chain');
+  setTimeout(()=>setPhase('audit','done'), 2500);
+}
+function cancelDeploy(btn){
+  btn.closest('.confirm-row').innerHTML = '<span style="font-size:11.5px;color:var(--muted)">Cancelled — nothing executed, denial receipted.</span>';
+  addLedger('control', 'Holder CANCELLED the prepared subscription at the confirm step. No execution.');
+}
+
+/* free text */
+function sendFree(){
+  const inp = document.getElementById('chatinput');
+  const v = inp.value.trim(); if(!v) return;
+  inp.value = '';
+  const lower = v.toLowerCase();
+  const num = (lower.replace(/[,$]/g,'').match(/(\d[\d.]*)\s*(k|m)?/)||[])[0];
+  if(lower.includes('deploy')||lower.includes('buy')||lower.includes('subscribe')){
+    let amt = 250000;
+    const m = lower.replace(/[,$]/g,'').match(/(\d+(?:\.\d+)?)\s*(k|m)?/);
+    if(m){ amt = parseFloat(m[1]); if(m[2]==='k') amt*=1e3; if(m[2]==='m') amt*=1e6; }
+    addMsg('user', v);
+    return runDeploy(Math.round(amt));
+  }
+  if(lower.includes('position')||lower.includes('balance')) return ask('positions', v);
+  if(lower.includes('deploy')||lower.includes('safely')||lower.includes('idle')||lower.includes('yield')) return ask('deployable', v);
+  if(lower.includes('discover')||lower.includes('product')||lower.includes('new')) return ask('discover', v);
+  if(lower.includes('mandate')||lower.includes('policy')){
+    addMsg('user', v);
+    return agentReply(`Your mandate v1.0 (<code>0xdc0e…6afe</code>): operating floor <b>$2,000,000</b> in USDC, single-asset concentration cap <b>40%</b>, agent authority delegated by owner <code>0xd6…681d</code>, kill switch armed, current mode <b>SIMULATED</b>. Every approval, denial and execution is hash-chained in the audit ledger.`);
+  }
+  addMsg('user', v);
+  agentReply(`I can read your <b>positions</b>, forecast <b>what's safely deployable</b>, <b>discover products</b> on the registry, or run a policy-gated deployment — e.g. <i>“deploy 250000 into ${S.productName}”</i>.`);
+}
+
+/* ledger */
+function addLedger(tag, text, status){
+  S.receipts++;
+  const l = document.getElementById('ledger');
+  const st = status ? `<span class="lstatus ${status}" style="margin-left:8px">${status}</span>` : '';
+  l.insertAdjacentHTML('afterbegin',
+    `<div class="lentry"><span class="ltag ${tag}">${tag.toUpperCase()}</span><div class="ltxt">${text}${st}</div><span class="lhash">⛓ ${hash6()}</span></div>`);
+  document.getElementById('chainok').textContent = `Chain intact ✓ — ${S.receipts} receipts, every hash + signature + link verified`;
+}
+</script>
+</body>
+</html>
